@@ -80,11 +80,12 @@ screen = 'mainMenu' # mainMenu, game, settings, credits
 mouseDown = False
 mouseCursor = 'arrow' # none, arrow, hand
 
-platforms = [[1000, 350, 123, 13]]  # x, y, width, height
-bullets = [[300, 0, 19, 66, 0, 4, 0], [500, 30, 19, 66, 0, 4, 0], [700, 60, 19, 66, 0, 4, 0], [900, 90, 19, 66, 0, 4, 0]]  # x, y, width, height, rot, speed, dθ
-powerups = [[800, 500, 50, 50, 'blindness']]
+platforms = []  # x, y, width, height
+bullets = []  # x, y, width, height, rot, speed, dθ
+powerups = []
 
-mainMenuButtons = [['POWER HEAD', displayw / 2, 200, 60, (0, 0, 0), 'center', '', False], ['Start', displayw / 2, 360, 35, black, 'center', 'start', False], ['Settings', displayw / 2, 435, 35, black, 'center', 'settings', False], ['Credits', displayw / 2, 510, 35, black, 'center', 'credits', False], ['Leave', displayw / 2, 585, 35, black, 'center', 'leave', False]] # text, x, y, size, color, align, function (start, settings, leave, credits), hover
+mainMenuButtons = [['POWER HEAD', displayw / 2, 200, 60, black, 'center', '', False], ['Start', displayw / 2, 360, 35, black, 'center', 'start', False], ['Settings', displayw / 2, 435, 35, black, 'center', 'settings', False], ['Credits', displayw / 2, 510, 35, black, 'center', 'credits', False], ['Quit Game', displayw / 2, 585, 35, black, 'center', 'leave', False]] # text, x, y, size, color, align, function (start, settings, leave, credits), hover
+pauseButtons = [['Game Paused', displayw / 2, 200, 60, black, 'center', '', False], ['Continue', displayw / 2, 360, 32, black, 'center', 'continue', False], ['Settings', displayw / 2, 435, 32, black, 'center', 'settings', False], ['Leave', displayw / 2, 510, 32, black, 'center', 'leave', False]] # text, x, y, size, color, align, function (resume, settings, leave), hover
 # x, y, width, height, type (regen, doubleJump, slowEnemies, slowness, blindness, bulletRedirect)
 
 
@@ -169,10 +170,10 @@ while not crashed:
         elif mouseCursor == 'hand':
             pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
 
-    if screen == 'mainMenu':
-        mouseX, mouseY = pygame.mouse.get_pos()
-        mouseDown = False
+    mouseX, mouseY = pygame.mouse.get_pos()
+    mouseDown = False
 
+    if screen == 'mainMenu':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 crashed = True
@@ -200,6 +201,23 @@ while not crashed:
                 if i[6] == 'start':
                     screen = 'game'
                     mouseCursor = 'none'
+
+                    player.x = displayw / 2 - player.w / 2
+                    player.y = ground_level - player.h
+                    player.dx = 0
+                    player.dy = 0
+                    player.d2x = 0
+                    player.d2y = 0
+                    player.hearts = 3
+                    player.isJumping = False
+                    player.isDoubleJumping = False
+                    keyA = False
+                    keyD = False
+                    keySpace = False
+                    mouseDown = False
+                    platforms = []
+                    bullets = []
+                    powerups = []
                 elif i[6] == 'settings':
                     screen = 'settings'
                     mouseCursor = 'arrow'
@@ -211,195 +229,208 @@ while not crashed:
 
 
     elif screen == 'settings':
-        ""
-
-
-    elif screen == 'credits':
-        ""
-
-
-    elif screen == 'game':
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 crashed = True
 
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_a:
-                    keyA = True
-                elif event.key == pygame.K_d:
-                    keyD = True
-                elif event.key == pygame.K_SPACE:
-                    keySpace = True
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouseDown = True
 
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_a:
-                    keyA = False
-                elif event.key == pygame.K_d:
-                    keyD = False
-                elif event.key == pygame.K_SPACE:
-                    keySpace = False
 
-        if powerup.duration > 0 and powerup.durationTimer < powerup.duration:
-            powerup.durationTimer += 1
-        elif powerup.durationTimer >= powerup.duration:
-            powerup.duration = 0
-            powerup.durationTimer = 0
-            powerup.type = ''
+    elif screen == 'credits':
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                crashed = True
 
-        if 0 < player.immunityTimer < player.immunityDuration:
-            player.immunityTimer += 1
-        elif player.immunityTimer >= player.immunityDuration:
-            player.immunityTimer = 0
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouseDown = True
 
-        if keyA == keyD:
-            if player.isJumping:
-                player.dx *= 0.98
-            elif not -0.1 < player.dx < 0.1:
-                player.dx *= 0.69
-            else:
-                player.dx = 0
-        elif keyA:
-            if powerup.durationTimer > 0 and powerup.type == 'slowness':
-                player.dx = -player.speed * powerup.slownessMultiplier
-            else:
-                player.dx = -player.speed
-        elif keyD:
-            if powerup.durationTimer > 0 and powerup.type == 'slowness':
-                player.dx = player.speed * powerup.slownessMultiplier
-            else:
-                player.dx = player.speed
 
-        if keySpace and not player.isJumping and player.jump.cooldownTimer == 0:
-            player.isJumping = True
-            player.jump.cooldownTimer = 1
-            player.d2y = 8 * player.jump.h / player.jump.time ** 2
-            player.dy = - 4 * player.jump.h / player.jump.time
-        elif keySpace and player.isJumping and player.dy > 0 and not player.isDoubleJumping and powerup.durationTimer > 0 and powerup.type == 'doubleJump':
-            player.isDoubleJumping = True
-            player.d2y = 8 * player.jump.h / player.jump.time ** 2
-            player.dy = - 4 * player.jump.h / player.jump.time
+    elif screen == 'game' or screen == 'pause':
+        if screen == 'game':
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    crashed = True
 
-        if player.jump.cooldownTimer > 0:
-            player.jump.cooldownTimer += 1
-        if not player.isJumping and player.jump.cooldownTimer > player.jump.cooldown:
-            player.jump.cooldownTimer = 0
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_a:
+                        keyA = True
+                    elif event.key == pygame.K_d:
+                        keyD = True
+                    elif event.key == pygame.K_SPACE:
+                        keySpace = True
+                    elif event.key == pygame.K_ESCAPE:
+                        screen = 'pause'
 
-        for i in platforms:
-            if (player.x < i[0] - player.w or player.x > i[0] + i[2]) and player.y == i[1] - player.h and not player.isJumping:
-                player.isJumping = True
-                player.d2y = 8 * player.jump.h / player.jump.time ** 2
+                if event.type == pygame.KEYUP:
+                    if event.key == pygame.K_a:
+                        keyA = False
+                    elif event.key == pygame.K_d:
+                        keyD = False
+                    elif event.key == pygame.K_SPACE:
+                        keySpace = False
 
-        player.dx += player.d2x
-        player.x += player.dx
-        player.dy += player.d2y
-        player.y += player.dy
+            if powerup.duration > 0 and powerup.durationTimer < powerup.duration:
+                powerup.durationTimer += 1
+            elif powerup.durationTimer >= powerup.duration:
+                powerup.duration = 0
+                powerup.durationTimer = 0
+                powerup.type = ''
 
-        for i in bullets:
-            # i[4] += 1
-            i[4] = ((i[4] + 180) % 360) - 180
-            if powerup.durationTimer > 0 and powerup.type == 'bulletRedirect':
-                temp5 = gafrar(player.y + player.w / 2 - i[1], player.x + player.h / 2 - i[0])
-                if (player.y < i[1] and not -90 < temp5 < 90) or (player.x < i[0] and -180 < temp5 < 180):
-                    if temp5 < 0:
-                        temp5 += 180
-                    else:
-                        temp5 -= 180
-                if -10 < temp5 - i[4] < 10:
-                    i[6] = 0
-                elif (temp5 - i[4]) % 360 < (i[4] - temp5) % 360:
-                    i[6] = powerup.bulletRedirectSpeed
+            if 0 < player.immunityTimer < player.immunityDuration:
+                player.immunityTimer += 1
+            elif player.immunityTimer >= player.immunityDuration:
+                player.immunityTimer = 0
+
+            if keyA == keyD:
+                if player.isJumping:
+                    player.dx *= 0.98
+                elif not -0.1 < player.dx < 0.1:
+                    player.dx *= 0.69
                 else:
-                    i[6] = - powerup.bulletRedirectSpeed
-            else:
-                i[6] = 0
+                    player.dx = 0
+            elif keyA:
+                if powerup.durationTimer > 0 and powerup.type == 'slowness':
+                    player.dx = -player.speed * powerup.slownessMultiplier
+                else:
+                    player.dx = -player.speed
+            elif keyD:
+                if powerup.durationTimer > 0 and powerup.type == 'slowness':
+                    player.dx = player.speed * powerup.slownessMultiplier
+                else:
+                    player.dx = player.speed
+
+            if keySpace and not player.isJumping and player.jump.cooldownTimer == 0:
+                player.isJumping = True
+                player.jump.cooldownTimer = 1
+                player.d2y = 8 * player.jump.h / player.jump.time ** 2
+                player.dy = - 4 * player.jump.h / player.jump.time
+            elif keySpace and player.isJumping and player.dy > 0 and not player.isDoubleJumping and powerup.durationTimer > 0 and powerup.type == 'doubleJump':
+                player.isDoubleJumping = True
+                player.d2y = 8 * player.jump.h / player.jump.time ** 2
+                player.dy = - 4 * player.jump.h / player.jump.time
+
+            if player.jump.cooldownTimer > 0:
+                player.jump.cooldownTimer += 1
+            if not player.isJumping and player.jump.cooldownTimer > player.jump.cooldown:
+                player.jump.cooldownTimer = 0
+
+            for i in platforms:
+                if (player.x < i[0] - player.w or player.x > i[0] + i[2]) and player.y == i[1] - player.h and not player.isJumping:
+                    player.isJumping = True
+                    player.d2y = 8 * player.jump.h / player.jump.time ** 2
+
+            player.dx += player.d2x
+            player.x += player.dx
+            player.dy += player.d2y
+            player.y += player.dy
+
+            for i in bullets:
+                # i[4] += 1
+                i[4] = ((i[4] + 180) % 360) - 180
+                if powerup.durationTimer > 0 and powerup.type == 'bulletRedirect':
+                    temp5 = gafrar(player.y + player.w / 2 - i[1], player.x + player.h / 2 - i[0])
+                    if (player.y < i[1] and not -90 < temp5 < 90) or (player.x < i[0] and -180 < temp5 < 180):
+                        if temp5 < 0:
+                            temp5 += 180
+                        else:
+                            temp5 -= 180
+                    if -10 < temp5 - i[4] < 10:
+                        i[6] = 0
+                    elif (temp5 - i[4]) % 360 < (i[4] - temp5) % 360:
+                        i[6] = powerup.bulletRedirectSpeed
+                    else:
+                        i[6] = - powerup.bulletRedirectSpeed
+                else:
+                    i[6] = 0
 
 
-            i[4] += i[6]
+                i[4] += i[6]
 
 
-            if powerup.durationTimer > 0 and powerup.type == 'slowEnemies':
-                i[0] += i[5] * sin(i[4]) * powerup.slowEnemiesMultiplier
-                i[1] += i[5] * sin(90 - i[4]) * powerup.slowEnemiesMultiplier
-            else:
-                i[0] += i[5] * sin(i[4])
-                i[1] += i[5] * sin(90 - i[4])
+                if powerup.durationTimer > 0 and powerup.type == 'slowEnemies':
+                    i[0] += i[5] * sin(i[4]) * powerup.slowEnemiesMultiplier
+                    i[1] += i[5] * sin(90 - i[4]) * powerup.slowEnemiesMultiplier
+                else:
+                    i[0] += i[5] * sin(i[4])
+                    i[1] += i[5] * sin(90 - i[4])
 
 
-        # collisions
-        if player.x < 0:
-            player.x = 0
-        if player.x > displayw - player.w:
-            player.x = displayw - player.w
-        if player.y > ground_level - player.h and player.isJumping:
-            player.y = ground_level - player.h
-            player.isJumping = False
-            player.isDoubleJumping = False
-            player.d2y = 0
-            player.dy = 0
-
-        for i in platforms:
-            if side_collide(i, 2):
-                player.y = i[1] + i[3]
-                player.dy *= -1
-            elif side_collide(i, 0) and player.dy > 0:
+            # collisions
+            if player.x < 0:
+                player.x = 0
+            if player.x > displayw - player.w:
+                player.x = displayw - player.w
+            if player.y > ground_level - player.h and player.isJumping:
+                player.y = ground_level - player.h
                 player.isJumping = False
                 player.isDoubleJumping = False
-                player.y = i[1] - player.h
-                player.dy = 0
                 player.d2y = 0
-            elif side_collide(i, 1):
-                player.x = i[0] + i[2]
-            elif side_collide(i, 3):
-                player.x = i[0] - player.w
+                player.dy = 0
 
-            for j in bullets:
-                temp3 = [[j[0], j[1]], [j[0] + j[2] * sin(90 - j[4]), j[1] - j[2] * sin(j[4])], [j[0] + j[3] * sin(j[4]), j[1] + j[3] * sin(90 - j[4])], [j[0] + j[3] * sin(j[4]) + j[2] * sin(90 - j[4]), j[1] + j[3] * sin(90 - j[4]) - j[2] * sin(j[4])]]
-                temp4 = False
-                for k in temp3:
-                    if i[0] < k[0] < i[0] + i[2] and i[1] < k[1] < i[1] + i[3]:
-                        temp4 = True
-                if temp4:
-                    bullets.remove(j)
+            for i in platforms:
+                if side_collide(i, 2):
+                    player.y = i[1] + i[3]
+                    player.dy *= -1
+                elif side_collide(i, 0) and player.dy > 0:
+                    player.isJumping = False
+                    player.isDoubleJumping = False
+                    player.y = i[1] - player.h
+                    player.dy = 0
+                    player.d2y = 0
+                elif side_collide(i, 1):
+                    player.x = i[0] + i[2]
+                elif side_collide(i, 3):
+                    player.x = i[0] - player.w
 
-        for i in bullets:
-            if -90 < i[4] < 90 and (
-                    i[1] + i[3] * sin(90 - i[4]) > ground_level or i[1] + i[3] * sin(90 - i[4]) - i[2] * sin(
-                    i[4]) > ground_level):
-                bullets.remove(i)
-            elif (i[4] == 90 and i[0] > displayw) or (i[4] == -90 and i[0] < -i[3]):
-                bullets.remove(i)
-            elif not -90 < i[4] < 90 and (
-                    i[1] - i[3] * sin(90 - i[4]) < 0 or i[1] - i[3] * sin(90 - i[4]) - i[2] * sin(i[4]) < 0):
-                bullets.remove(i)
-            elif ((side_collide(i, 0) and player.dy < 0) or side_collide(i, 1) or side_collide(i, 2) or side_collide(i, 3)) and player.immunityTimer == 0:
-                bullets.remove(i)
-                player.hearts -= 1
-                player.immunityTimer = 1
-            elif side_collide(i, 0) and player.dy >= 0:
-                bullets.remove(i)
-                player.dy *= -1
+                for j in bullets:
+                    temp3 = [[j[0], j[1]], [j[0] + j[2] * sin(90 - j[4]), j[1] - j[2] * sin(j[4])], [j[0] + j[3] * sin(j[4]), j[1] + j[3] * sin(90 - j[4])], [j[0] + j[3] * sin(j[4]) + j[2] * sin(90 - j[4]), j[1] + j[3] * sin(90 - j[4]) - j[2] * sin(j[4])]]
+                    temp4 = False
+                    for k in temp3:
+                        if i[0] < k[0] < i[0] + i[2] and i[1] < k[1] < i[1] + i[3]:
+                            temp4 = True
+                    if temp4:
+                        bullets.remove(j)
 
-        for i in powerups:
-            if side_collide(i, 0) or side_collide(i, 1) or side_collide(i, 2) or side_collide(i, 3):
-                if i[4] == 'regen':
-                    player.hearts += 1
-                elif i[4] == 'doubleJump':
-                    powerup.duration = powerup.doubleJumpDuration
-                    powerup.type = 'doubleJump'
-                elif i[4] == 'slowEnemies':
-                    powerup.duration = powerup.slowEnemiesDuration
-                    powerup.type = 'slowEnemies'
-                elif i[4] == 'slowness':
-                    powerup.duration = powerup.slownessDuration
-                    powerup.type = 'slowness'
-                elif i[4] == 'blindness':
-                    powerup.duration = powerup.blindnessDuration
-                    powerup.type = 'blindness'
-                elif i[4] == 'bulletRedirect':
-                    powerup.duration = powerup.bulletRedirectDuration
-                    powerup.type = 'bulletRedirect'
+            for i in bullets:
+                if -90 < i[4] < 90 and (
+                        i[1] + i[3] * sin(90 - i[4]) > ground_level or i[1] + i[3] * sin(90 - i[4]) - i[2] * sin(
+                        i[4]) > ground_level):
+                    bullets.remove(i)
+                elif (i[4] == 90 and i[0] > displayw) or (i[4] == -90 and i[0] < -i[3]):
+                    bullets.remove(i)
+                elif not -90 < i[4] < 90 and (
+                        i[1] - i[3] * sin(90 - i[4]) < 0 or i[1] - i[3] * sin(90 - i[4]) - i[2] * sin(i[4]) < 0):
+                    bullets.remove(i)
+                elif ((side_collide(i, 0) and player.dy < 0) or side_collide(i, 1) or side_collide(i, 2) or side_collide(i, 3)) and player.immunityTimer == 0:
+                    bullets.remove(i)
+                    player.hearts -= 1
+                    player.immunityTimer = 1
+                elif side_collide(i, 0) and player.dy >= 0:
+                    bullets.remove(i)
+                    player.dy *= -1
 
-                powerups.remove(i)
+            for i in powerups:
+                if side_collide(i, 0) or side_collide(i, 1) or side_collide(i, 2) or side_collide(i, 3):
+                    if i[4] == 'regen':
+                        player.hearts += 1
+                    elif i[4] == 'doubleJump':
+                        powerup.duration = powerup.doubleJumpDuration
+                        powerup.type = 'doubleJump'
+                    elif i[4] == 'slowEnemies':
+                        powerup.duration = powerup.slowEnemiesDuration
+                        powerup.type = 'slowEnemies'
+                    elif i[4] == 'slowness':
+                        powerup.duration = powerup.slownessDuration
+                        powerup.type = 'slowness'
+                    elif i[4] == 'blindness':
+                        powerup.duration = powerup.blindnessDuration
+                        powerup.type = 'blindness'
+                    elif i[4] == 'bulletRedirect':
+                        powerup.duration = powerup.bulletRedirectDuration
+                        powerup.type = 'bulletRedirect'
+
+                    powerups.remove(i)
 
         gameDisplay.fill(white)
         gameDisplay.blit(pygame.transform.scale(images.background, (displayw, displayh)), (0, 0))
@@ -436,6 +467,44 @@ while not crashed:
         # ui
         for i in range(player.hearts):
             gameDisplay.blit(images.heart, (50 * i, 0))
+
+        if screen == 'pause':
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    crashed = True
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouseDown = True
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        screen = 'game'
+
+            temp8 = pygame.Surface((displayw, displayh), pygame.SRCALPHA)
+            temp8.fill((96, 96, 96, 128))
+            gameDisplay.blit(temp8, (0, 0))
+
+            mouseCursor = 'arrow'
+            for i in pauseButtons:
+                if i[6] != '' and i[5] == 'center':
+                    temp7 = pygame.font.SysFont('Comic Sans MS', i[3]).render(i[0], True, i[4]).get_rect(
+                        center=(i[1], i[2]))
+                    i[7] = temp7.collidepoint(mouseX, mouseY)
+                    if i[7]:
+                        mouseCursor = 'hand'
+
+                drawText(i[0], i[1], i[2] - (3 * i[7]), i[3], i[4], i[5])
+
+                if i[7] and mouseDown:
+                    i[7] = False
+                    if i[6] == 'continue':
+                        screen = 'game'
+                        mouseCursor = 'none'
+                    elif i[6] == 'settings':
+                        screen = 'settings'
+                        mouseCursor = 'arrow'
+                    elif i[6] == 'leave':
+                        screen = 'mainMenu'
+                        mouseCursor = 'arrow'
 
     pygame.display.update()
     clock.tick(60)
