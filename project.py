@@ -76,7 +76,7 @@ keyA = False
 keyD = False
 keySpace = False
 
-screen = 'mainMenu' # mainMenu, game, settings, credits
+screen = 'mainMenu' # mainMenu, game, credits
 mouseDown = False
 mouseCursor = 'arrow' # none, arrow, hand
 
@@ -84,8 +84,8 @@ platforms = []  # x, y, width, height
 bullets = []  # x, y, width, height, rot, speed, dθ
 powerups = []
 
-mainMenuButtons = [['POWER HEAD', displayw / 2, 200, 60, black, 'center', '', False], ['Start', displayw / 2, 360, 35, black, 'center', 'start', False], ['Settings', displayw / 2, 435, 35, black, 'center', 'settings', False], ['Credits', displayw / 2, 510, 35, black, 'center', 'credits', False], ['Quit Game', displayw / 2, 585, 35, black, 'center', 'leave', False]] # text, x, y, size, color, align, function (start, settings, leave, credits), hover
-pauseButtons = [['Game Paused', displayw / 2, 200, 60, black, 'center', '', False], ['Continue', displayw / 2, 360, 32, black, 'center', 'continue', False], ['Settings', displayw / 2, 435, 32, black, 'center', 'settings', False], ['Leave', displayw / 2, 510, 32, black, 'center', 'leave', False]] # text, x, y, size, color, align, function (resume, settings, leave), hover
+mainMenuButtons = [['POWER HEAD', displayw / 2, 200, 60, black, 'center', '', False], ['Start', displayw / 2, 360, 35, black, 'center', 'start', False], ['Credits', displayw / 2, 435, 35, black, 'center', 'credits', False], ['Quit Game', displayw / 2, 510, 35, black, 'center', 'leave', False]] # text, x, y, size, color, align, function (start, leave, credits), hover
+pauseButtons = [['Game Paused', displayw / 2, 200, 60, black, 'center', '', False], ['Continue', displayw / 2, 360, 32, black, 'center', 'continue', False], ['Leave', displayw / 2, 435, 32, black, 'center', 'leave', False]] # text, x, y, size, color, align, function (resume, leave), hover
 # x, y, width, height, type (regen, doubleJump, slowEnemies, slowness, blindness, bulletRedirect)
 
 
@@ -218,24 +218,11 @@ while not crashed:
                     platforms = []
                     bullets = []
                     powerups = []
-                elif i[6] == 'settings':
-                    screen = 'settings'
-                    mouseCursor = 'arrow'
                 elif i[6] == 'credits':
                     screen = 'credits'
                     mouseCursor = 'arrow'
                 elif i[6] == 'leave':
                     crashed = True
-
-
-    elif screen == 'settings':
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                crashed = True
-
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouseDown = True
-
 
     elif screen == 'credits':
         for event in pygame.event.get():
@@ -244,7 +231,6 @@ while not crashed:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouseDown = True
-
 
     elif screen == 'game' or screen == 'pause':
         if screen == 'game':
@@ -344,9 +330,7 @@ while not crashed:
                 else:
                     i[6] = 0
 
-
                 i[4] += i[6]
-
 
                 if powerup.durationTimer > 0 and powerup.type == 'slowEnemies':
                     i[0] += i[5] * sin(i[4]) * powerup.slowEnemiesMultiplier
@@ -499,12 +483,10 @@ while not crashed:
                     if i[6] == 'continue':
                         screen = 'game'
                         mouseCursor = 'none'
-                    elif i[6] == 'settings':
-                        screen = 'settings'
-                        mouseCursor = 'arrow'
                     elif i[6] == 'leave':
                         screen = 'mainMenu'
                         mouseCursor = 'arrow'
+
 
     pygame.display.update()
     clock.tick(60)
