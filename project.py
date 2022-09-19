@@ -26,8 +26,8 @@ class player:
     d2x = 0
     d2y = 0
     speed = 6.5
-    w = 164
-    h = 130
+    w = 150
+    h = 120
     hearts = 3
     isJumping = False
     isDoubleJumping = False
@@ -36,19 +36,19 @@ class player:
     immunityFlashPeriod = 25
 
     class jump:
-        h = 250
-        time = 40
+        h = 300
+        time = 42
         cooldown = 30
         cooldownTimer = 0
 
 
 class images:
-    player = pygame.image.load('assets/power_head.png')
+    player = pygame.image.load('assets/player.png')
     bullet = pygame.image.load('assets/bullet.png')
     powerup = pygame.image.load('assets/power_up.png')
     heart = pygame.image.load('assets/heart.png')
     background = pygame.image.load('assets/bg.png')
-    player_translucent = pygame.image.load('assets/power_head_translucent.png')
+    player_translucent = pygame.image.load('assets/player_translucent.png')
     platform = pygame.image.load('assets/platform1.png')
     ground = pygame.image.load('assets/ground.png')
     # favicon = pygame.image.load('icon.png')
@@ -58,6 +58,8 @@ class powerup:
     duration = 0
     durationTimer = 0
     type = ''
+    spawnTime = 0
+
     slownessDuration = 300
     slownessMultiplier = 0.5
     slowEnemiesDuration = 300
@@ -72,21 +74,35 @@ class powerup:
 
 ground_level = 780  # the top of the ground
 
+t = 0  # game time
+
 keyA = False
 keyD = False
 keySpace = False
 
-screen = 'mainMenu' # mainMenu, game, credits
+screen = 'mainMenu'  # mainMenu, game, credits
 mouseDown = False
-mouseCursor = 'arrow' # none, arrow, hand
+mouseCursor = 'arrow'  # none, arrow, hand
 
 platforms = []  # x, y, width, height
 bullets = []  # x, y, width, height, rot, speed, dθ
-powerups = []
+powerups = []  # x, y, width, height, type (regen, doubleJump, slowEnemies, slowness, blindness, bulletRedirect)
 
-mainMenuButtons = [['POWER HEAD', displayw / 2, 200, 60, black, 'center', '', False], ['Start', displayw / 2, 360, 35, black, 'center', 'start', False], ['Credits', displayw / 2, 435, 35, black, 'center', 'credits', False], ['Quit Game', displayw / 2, 510, 35, black, 'center', 'leave', False]] # text, x, y, size, color, align, function (start, leave, credits), hover
-pauseButtons = [['Game Paused', displayw / 2, 200, 60, black, 'center', '', False], ['Continue', displayw / 2, 360, 32, black, 'center', 'continue', False], ['Leave', displayw / 2, 435, 32, black, 'center', 'leave', False]] # text, x, y, size, color, align, function (resume, leave), hover
-# x, y, width, height, type (regen, doubleJump, slowEnemies, slowness, blindness, bulletRedirect)
+mainMenuButtons = [['POWER HEAD', displayw / 2, 200, 60, black, 'center', '', False],
+                   ['Start', displayw / 2, 360, 35, black, 'center', 'start', False],
+                   ['Credits', displayw / 2, 435, 35, black, 'center', 'credits', False],
+                   ['Quit Game', displayw / 2, 510, 35, black, 'center', 'leave',
+                    False]]  # text, x, y, size, color, align, function (start, leave, credits), hover
+pauseButtons = [['Game Paused', displayw / 2, 200, 60, black, 'center', '', False],
+                ['Continue', displayw / 2, 360, 32, black, 'center', 'continue', False],
+                ['Leave', displayw / 2, 435, 32, black, 'center', 'leave',
+                 False]]  # text, x, y, size, color, align, function (resume, leave), hover
+creditsButtons = [['Credits', displayw / 2, 200, 60, black, 'center'],
+                  ['Navanatee Yampunranai', displayw / 2, 340, 24, black, 'center'],
+                  ['Pannawich Siripakornchai', displayw / 2, 405, 24, black, 'center'],
+                  ['Supacheep Sahakitrungruang', displayw / 2, 470, 24, black, 'center'],
+                  ['© 2022 All Rights Reserved', displayw / 2, ground_level - 30, 18, black,
+                   'center']]  # text, x, y, size, color, align
 
 
 def check_collision_side(vertex, pltvt):  # platform vertices
@@ -131,7 +147,7 @@ def sin(n):  # n in degrees
     return n * (1 - n ** 2 / 6 + n ** 4 / 120 - n ** 6 / 5040)
 
 
-def gafrar(rise, run): # get angle from rise and run
+def gafrar(rise, run):  # get angle from rise and run
     n = run / rise
     nRec = rise / run
     if -1 <= n <= 1:
@@ -156,9 +172,6 @@ def drawText(txt, n1, n2, sze, clr, algn):
 player.x = displayw / 2 - player.w / 2
 player.y = ground_level - player.h
 # pygame.display.set_icon()
-bullets = []
-for i in range(10):
-    bullets.append([random.randrange(0, displayw), random.randrange(0, 50), 19, 66, 0, 4, 0.0])
 
 while not crashed:
     if mouseCursor == 'none':
@@ -180,6 +193,9 @@ while not crashed:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouseDown = True
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    screen = 'mainMenu'
 
         gameDisplay.fill(white)
         gameDisplay.blit(pygame.transform.scale(images.background, (displayw, displayh)), (0, 0))
@@ -189,7 +205,8 @@ while not crashed:
         mouseCursor = 'arrow'
         for i in mainMenuButtons:
             if i[6] != '' and i[5] == 'center':
-                temp7 = pygame.font.SysFont('Comic Sans MS', i[3]).render(i[0], True, i[4]).get_rect(center=(i[1], i[2]))
+                temp7 = pygame.font.SysFont('Comic Sans MS', i[3]).render(i[0], True, i[4]).get_rect(
+                    center=(i[1], i[2]))
                 i[7] = temp7.collidepoint(mouseX, mouseY)
                 if i[7]:
                     mouseCursor = 'hand'
@@ -231,6 +248,18 @@ while not crashed:
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouseDown = True
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    screen = 'mainMenu'
+
+        gameDisplay.fill(white)
+        gameDisplay.blit(pygame.transform.scale(images.background, (displayw, displayh)), (0, 0))
+        # gameDisplay.blit(pygame.transform.scale(images.ground, (displayw, 120)), (0, ground_level))
+        pygame.draw.rect(gameDisplay, (77, 58, 45), pygame.Rect(0, ground_level, displayw, displayh - ground_level))
+
+        mouseCursor = 'arrow'
+        for i in creditsButtons:
+            drawText(i[0], i[1], i[2], i[3], i[4], i[5])
 
     elif screen == 'game' or screen == 'pause':
         if screen == 'game':
@@ -255,6 +284,27 @@ while not crashed:
                         keyD = False
                     elif event.key == pygame.K_SPACE:
                         keySpace = False
+
+            t += 1
+            # spawn enemies
+            if 120 < t < 600:
+                if len(bullets) < 2:
+                    bullets.append([random.randrange(10, displayw - 19 - 10), -200, 19, 66, 0, 4, 0])
+            elif t < 1200:
+                if len(bullets) < 4:
+                    bullets.append(
+                        [random.randrange(10, displayw - 19 - 10), random.randrange(-600, -200), 19, 66, 0, 4, 0])
+            elif t < 1800:
+                if len(bullets) < 6:
+                    bullets.append(
+                        [random.randrange(10, displayw - 19 - 10), random.randrange(-600, -200), 19, 66, 0, 4, 0])
+                powerup.spawnTime = random.randrange(1900, 3500)
+            elif t < 3600:
+                if len(bullets) < 8:
+                    bullets.append(
+                        [random.randrange(10, displayw - 19 - 10), random.randrange(-600, -200), 19, 66, 0, 4, 0])
+                if t == powerup.spawnTime:
+                    powerups.append([random.randrange(10, displayw - 19 - 10), random.randrange(ground_level - 300, ground_level - 80), 50, 50, 'doubleJump'])
 
             if powerup.duration > 0 and powerup.durationTimer < powerup.duration:
                 powerup.durationTimer += 1
@@ -302,7 +352,8 @@ while not crashed:
                 player.jump.cooldownTimer = 0
 
             for i in platforms:
-                if (player.x < i[0] - player.w or player.x > i[0] + i[2]) and player.y == i[1] - player.h and not player.isJumping:
+                if (player.x < i[0] - player.w or player.x > i[0] + i[2]) and player.y == i[
+                    1] - player.h and not player.isJumping:
                     player.isJumping = True
                     player.d2y = 8 * player.jump.h / player.jump.time ** 2
 
@@ -339,7 +390,6 @@ while not crashed:
                     i[0] += i[5] * sin(i[4])
                     i[1] += i[5] * sin(90 - i[4])
 
-
             # collisions
             if player.x < 0:
                 player.x = 0
@@ -368,7 +418,10 @@ while not crashed:
                     player.x = i[0] - player.w
 
                 for j in bullets:
-                    temp3 = [[j[0], j[1]], [j[0] + j[2] * sin(90 - j[4]), j[1] - j[2] * sin(j[4])], [j[0] + j[3] * sin(j[4]), j[1] + j[3] * sin(90 - j[4])], [j[0] + j[3] * sin(j[4]) + j[2] * sin(90 - j[4]), j[1] + j[3] * sin(90 - j[4]) - j[2] * sin(j[4])]]
+                    temp3 = [[j[0], j[1]], [j[0] + j[2] * sin(90 - j[4]), j[1] - j[2] * sin(j[4])],
+                             [j[0] + j[3] * sin(j[4]), j[1] + j[3] * sin(90 - j[4])],
+                             [j[0] + j[3] * sin(j[4]) + j[2] * sin(90 - j[4]),
+                              j[1] + j[3] * sin(90 - j[4]) - j[2] * sin(j[4])]]
                     temp4 = False
                     for k in temp3:
                         if i[0] < k[0] < i[0] + i[2] and i[1] < k[1] < i[1] + i[3]:
@@ -379,14 +432,16 @@ while not crashed:
             for i in bullets:
                 if -90 < i[4] < 90 and (
                         i[1] + i[3] * sin(90 - i[4]) > ground_level or i[1] + i[3] * sin(90 - i[4]) - i[2] * sin(
-                        i[4]) > ground_level):
+                    i[4]) > ground_level):
                     bullets.remove(i)
                 elif (i[4] == 90 and i[0] > displayw) or (i[4] == -90 and i[0] < -i[3]):
                     bullets.remove(i)
                 elif not -90 < i[4] < 90 and (
                         i[1] - i[3] * sin(90 - i[4]) < 0 or i[1] - i[3] * sin(90 - i[4]) - i[2] * sin(i[4]) < 0):
                     bullets.remove(i)
-                elif ((side_collide(i, 0) and player.dy < 0) or side_collide(i, 1) or side_collide(i, 2) or side_collide(i, 3)) and player.immunityTimer == 0:
+                elif ((side_collide(i, 0) and player.dy < 0) or side_collide(i, 1) or side_collide(i,
+                                                                                                   2) or side_collide(i,
+                                                                                                                      3)) and player.immunityTimer == 0:
                     bullets.remove(i)
                     player.hearts -= 1
                     player.immunityTimer = 1
@@ -420,7 +475,9 @@ while not crashed:
         gameDisplay.blit(pygame.transform.scale(images.background, (displayw, displayh)), (0, 0))
         # gameDisplay.blit(pygame.font.SysFont('Comic Sans MS', 30).render(str(powerup.durationTimer), True, (0, 0, 0)), (0, 50))
         for i in bullets:
-            newrect = pygame.transform.rotate(images.bullet, i[4]).get_rect(center=((i[0] * 2 + i[3] * sin(i[4]) + i[2] * sin(90 - i[4])) / 2, (i[1] * 2 + i[3] * sin(90 - i[4]) - i[2] * sin(i[4])) / 2))
+            newrect = pygame.transform.rotate(images.bullet, i[4]).get_rect(center=(
+            (i[0] * 2 + i[3] * sin(i[4]) + i[2] * sin(90 - i[4])) / 2,
+            (i[1] * 2 + i[3] * sin(90 - i[4]) - i[2] * sin(i[4])) / 2))
             gameDisplay.blit(pygame.transform.rotate(images.bullet, i[4]), newrect)
         for i in platforms:
             gameDisplay.blit(images.platform, (i[0], i[1]))
@@ -451,6 +508,11 @@ while not crashed:
         # ui
         for i in range(player.hearts):
             gameDisplay.blit(images.heart, (50 * i, 0))
+        temp9 = str(t // 3600)  # mins
+        temp10 = (t // 60) % 60  # secs
+        temp10 = '0' + str(temp10) if 0 <= temp10 <= 9 else str(temp10)
+
+        drawText(temp9 + ':' + temp10, displayw - 10, 5, 24, black, 'right')
 
         if screen == 'pause':
             for event in pygame.event.get():
@@ -486,7 +548,6 @@ while not crashed:
                     elif i[6] == 'leave':
                         screen = 'mainMenu'
                         mouseCursor = 'arrow'
-
 
     pygame.display.update()
     clock.tick(60)
