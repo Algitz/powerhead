@@ -1,9 +1,8 @@
-import pygame
-import random
+import pygame, random
 
 pygame.init()
 
-displayw = 1600
+displayw = 1440
 displayh = 900
 
 gameDisplay = pygame.display.set_mode((displayw, displayh))
@@ -49,8 +48,8 @@ class images:
     heart = pygame.image.load('assets/heart.png')
     background = pygame.image.load('assets/bg.png')
     player_translucent = pygame.image.load('assets/player_translucent.png')
-    platform = pygame.image.load('assets/platform1.png')
-    ground = pygame.image.load('assets/ground.png')
+    platform = pygame.image.load('assets/platform.png')
+    # ground = pygame.image.load('assets/ground.png')
     # favicon = pygame.image.load('icon.png')
 
 
@@ -69,12 +68,13 @@ class powerup:
     blindnessRadius = 220
     blindnessColor = (10, 10, 10)
     bulletRedirectDuration = 140
-    bulletRedirectSpeed = 1.5
+    bulletRedirectSpeed = 1.25
 
 
 ground_level = 780  # the top of the ground
 
 t = 0  # game time
+pb = 0  # best time
 
 keyA = False
 keyD = False
@@ -97,6 +97,10 @@ pauseButtons = [['Game Paused', displayw / 2, 200, 60, black, 'center', '', Fals
                 ['Continue', displayw / 2, 360, 32, black, 'center', 'continue', False],
                 ['Leave', displayw / 2, 435, 32, black, 'center', 'leave',
                  False]]  # text, x, y, size, color, align, function (resume, leave), hover
+lostButtons = [['You Lost', displayw / 2, 200, 60, black, 'center', '', False],
+               ['Restart', displayw / 2, 440, 32, black, 'center', 'restart', False],
+               ['Leave', displayw / 2, 515, 32, black, 'center', 'leave',
+                False]]  # text, x, y, size, color, align, function (resume, leave), hover
 creditsButtons = [['Credits', displayw / 2, 200, 60, black, 'center'],
                   ['Navanatee Yampunranai', displayw / 2, 340, 24, black, 'center'],
                   ['Pannawich Siripakornchai', displayw / 2, 405, 24, black, 'center'],
@@ -168,6 +172,64 @@ def drawText(txt, n1, n2, sze, clr, algn):
         gameDisplay.blit(temp6, temp6.get_rect(topright=(n1, n2)))
 
 
+def resetGame():
+    global screen, mouseCursor, keyA, keyD, keySpace, mouseDown, platforms, bullets, powerups, pb, t
+
+    screen = 'game'
+    mouseCursor = 'none'
+
+    player.x = displayw / 2 - player.w / 2
+    player.y = ground_level - player.h
+    player.dx = 0
+    player.dy = 0
+    player.d2x = 0
+    player.d2y = 0
+    player.hearts = 3
+    player.isJumping = False
+    player.isDoubleJumping = False
+    keyA = False
+    keyD = False
+    keySpace = False
+    mouseDown = False
+    platforms = []
+    bullets = []
+    powerups = []
+    if t > pb: pb = t
+    t = 0
+    player.immunityTimer = 0
+
+    powerup.duration = 0
+    powerup.durationTimer = 0
+    powerup.type = ''
+    powerup.spawnTime = 0
+
+
+def spawnPowerup(chance):
+    temp15 = ''
+    temp16 = random.randint(1, 3)
+    if random.randint(1, 100) <= chance:
+        if temp16 == 1: temp15 = 'regen'
+        elif temp16 == 2: temp15 = 'doubleJump'
+        elif temp16 == 3: temp15 = 'slowEnemies'
+    else:
+        if temp16 == 1: temp15 = 'slowness'
+        elif temp16 == 2: temp15 = 'blindness'
+        elif temp16 == 3: temp15 = 'bulletRedirect'
+
+    powerups.append([random.randint(10, displayw - 19 - 10),
+                     random.randint(ground_level - 300, ground_level - 80), 50, 50, temp15])
+
+
+def spawnBullet():
+    temp17 = random.randint(1, 16)
+    if temp17 == 1:
+        bullets.append([random.randint(-600, -200), random.randint(300, ground_level - 19 - 10), 19, 66, 90, 4, 0])
+    elif temp17 == 2:
+        bullets.append([random.randint(displayw + 200, displayw + 600), random.randint(300, ground_level - 19 - 10), 19, 66, -90, 4,0])
+    else:
+        bullets.append([random.randint(10, displayw - 19 - 10), random.randint(-600, -200), 19, 66, 0, 4, 0])
+
+
 # setup
 player.x = displayw / 2 - player.w / 2
 player.y = ground_level - player.h
@@ -216,25 +278,8 @@ while not crashed:
             if i[7] and mouseDown:
                 i[7] = False
                 if i[6] == 'start':
-                    screen = 'game'
-                    mouseCursor = 'none'
+                    resetGame()
 
-                    player.x = displayw / 2 - player.w / 2
-                    player.y = ground_level - player.h
-                    player.dx = 0
-                    player.dy = 0
-                    player.d2x = 0
-                    player.d2y = 0
-                    player.hearts = 3
-                    player.isJumping = False
-                    player.isDoubleJumping = False
-                    keyA = False
-                    keyD = False
-                    keySpace = False
-                    mouseDown = False
-                    platforms = []
-                    bullets = []
-                    powerups = []
                 elif i[6] == 'credits':
                     screen = 'credits'
                     mouseCursor = 'arrow'
@@ -261,7 +306,7 @@ while not crashed:
         for i in creditsButtons:
             drawText(i[0], i[1], i[2], i[3], i[4], i[5])
 
-    elif screen == 'game' or screen == 'pause':
+    elif screen == 'game' or screen == 'pause' or screen == 'lost':
         if screen == 'game':
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -285,26 +330,93 @@ while not crashed:
                     elif event.key == pygame.K_SPACE:
                         keySpace = False
 
+            if player.hearts <= 0:
+                screen = 'lost'
+
             t += 1
             # spawn enemies
-            if 120 < t < 600:
+            if t < 120: # stage 0
+                ""
+            elif t < 600:
                 if len(bullets) < 2:
-                    bullets.append([random.randrange(10, displayw - 19 - 10), -200, 19, 66, 0, 4, 0])
+                    bullets.append([random.randint(10, displayw - 19 - 10), -200, 19, 66, 0, 4, 0])
             elif t < 1200:
                 if len(bullets) < 4:
-                    bullets.append(
-                        [random.randrange(10, displayw - 19 - 10), random.randrange(-600, -200), 19, 66, 0, 4, 0])
+                    bullets.append([random.randint(10, displayw - 19 - 10), random.randint(-600, -200), 19, 66, 0, 4, 0])
             elif t < 1800:
                 if len(bullets) < 6:
-                    bullets.append(
-                        [random.randrange(10, displayw - 19 - 10), random.randrange(-600, -200), 19, 66, 0, 4, 0])
-                powerup.spawnTime = random.randrange(1900, 3500)
-            elif t < 3600:
+                    bullets.append([random.randint(10, displayw - 19 - 10), random.randint(-600, -200), 19, 66, 0, 4, 0])
+                powerup.spawnTime = random.randint(1900, 3500)
+            elif t < 3600: # stage 1
                 if len(bullets) < 8:
-                    bullets.append(
-                        [random.randrange(10, displayw - 19 - 10), random.randrange(-600, -200), 19, 66, 0, 4, 0])
+                    bullets.append([random.randint(10, displayw - 19 - 10), random.randint(-600, -200), 19, 66, 0, 4, 0])
                 if t == powerup.spawnTime:
-                    powerups.append([random.randrange(10, displayw - 19 - 10), random.randrange(ground_level - 300, ground_level - 80), 50, 50, 'doubleJump'])
+                    spawnPowerup(100)
+                    powerup.spawnTime = random.randint(3700, 5300)
+            elif t < 5400: # stage 2
+                if len(bullets) < 10:
+                    spawnBullet()
+                if t == powerup.spawnTime:
+                    spawnPowerup(95)
+                    powerup.spawnTime = random.randint(5500, 7400)
+                if t == 3601:
+                    platforms = [[random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40]]
+            elif t < 7500: # stage 3
+                if len(bullets) < 12:
+                    spawnBullet()
+                if t == powerup.spawnTime:
+                    spawnPowerup(92)
+                    powerup.spawnTime = random.randint(7600, 9500)
+                if t == 5401:
+                    platforms = [[random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40]]
+            elif t < 9600: # stage 4
+                if len(bullets) < 14:
+                    spawnBullet()
+                if t == powerup.spawnTime:
+                    spawnPowerup(90)
+                    powerup.spawnTime = random.randint(9700, 11900)
+                if t == 7501:
+                    platforms = [[random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40]]
+                    platforms.append([random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40])
+            elif t < 12000: # stage 5
+                if len(bullets) < 16:
+                    spawnBullet()
+                if t == powerup.spawnTime:
+                    spawnPowerup(87)
+                    powerup.spawnTime = random.randint(12100, 14300)
+                if t == 9601:
+                    platforms = [[random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40]]
+                    platforms.append([random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40])
+            elif t < 14400: # stage 6
+                if len(bullets) < 18:
+                    spawnBullet()
+                if t == powerup.spawnTime:
+                    spawnPowerup(85)
+                    powerup.spawnTime = random.randint(14500, 17900)
+                if t == 12001:
+                    platforms = [[random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40]]
+                    platforms.append([random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40])
+            elif t < 18000: # stage 7
+                if len(bullets) < 14:
+                    spawnBullet()
+                if t == powerup.spawnTime:
+                    spawnPowerup(85)
+                    powerup.spawnTime = random.randint(19000, 20600)
+                if t == 14401:
+                    platforms = [[random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40]]
+                    platforms.append([random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40])
+                    platforms.append([random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40])
+            else: # stage 7
+                if len(bullets) < 24:
+                    spawnBullet()
+                if t == powerup.spawnTime:
+                    spawnPowerup(80)
+                    powerup.spawnTime = random.randint(t + 1200, t + 2400)
+                if t % 3600 == 0:
+                    platforms = [[random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40]]
+                    platforms.append([random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40])
+                    platforms.append([random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40])
+
 
             if powerup.duration > 0 and powerup.durationTimer < powerup.duration:
                 powerup.durationTimer += 1
@@ -352,8 +464,7 @@ while not crashed:
                 player.jump.cooldownTimer = 0
 
             for i in platforms:
-                if (player.x < i[0] - player.w or player.x > i[0] + i[2]) and player.y == i[
-                    1] - player.h and not player.isJumping:
+                if (player.x < i[0] - player.w or player.x > i[0] + i[2]) and player.y == i[1] - player.h and not player.isJumping:
                     player.isJumping = True
                     player.d2y = 8 * player.jump.h / player.jump.time ** 2
 
@@ -476,8 +587,8 @@ while not crashed:
         # gameDisplay.blit(pygame.font.SysFont('Comic Sans MS', 30).render(str(powerup.durationTimer), True, (0, 0, 0)), (0, 50))
         for i in bullets:
             newrect = pygame.transform.rotate(images.bullet, i[4]).get_rect(center=(
-            (i[0] * 2 + i[3] * sin(i[4]) + i[2] * sin(90 - i[4])) / 2,
-            (i[1] * 2 + i[3] * sin(90 - i[4]) - i[2] * sin(i[4])) / 2))
+                (i[0] * 2 + i[3] * sin(i[4]) + i[2] * sin(90 - i[4])) / 2,
+                (i[1] * 2 + i[3] * sin(90 - i[4]) - i[2] * sin(i[4])) / 2))
             gameDisplay.blit(pygame.transform.rotate(images.bullet, i[4]), newrect)
         for i in platforms:
             gameDisplay.blit(images.platform, (i[0], i[1]))
@@ -512,7 +623,7 @@ while not crashed:
         temp10 = (t // 60) % 60  # secs
         temp10 = '0' + str(temp10) if 0 <= temp10 <= 9 else str(temp10)
 
-        drawText(temp9 + ':' + temp10, displayw - 10, 5, 24, black, 'right')
+        drawText(temp9 + ':' + temp10, displayw - 10, 5, 24, white if powerup.durationTimer > 0 and powerup.type == 'blindness' else black, 'right')
 
         if screen == 'pause':
             for event in pygame.event.get():
@@ -545,6 +656,58 @@ while not crashed:
                     if i[6] == 'continue':
                         screen = 'game'
                         mouseCursor = 'none'
+                    elif i[6] == 'leave':
+                        screen = 'mainMenu'
+                        mouseCursor = 'arrow'
+        elif screen == 'lost':
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    crashed = True
+
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    mouseDown = True
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        screen = 'mainMenu'
+                        mouseCursor = 'hand'
+
+            temp8 = pygame.Surface((displayw, displayh), pygame.SRCALPHA)
+            temp8.fill((96, 96, 96, 128))
+            gameDisplay.blit(temp8, (0, 0))
+
+            mouseCursor = 'arrow'
+
+            if t // 60 > pb // 60:
+                temp11 = str(t // 3600)  # mins
+                temp12 = (t // 60) % 60  # secs
+                temp12 = '0' + str(temp12) if 0 <= temp12 <= 9 else str(temp12)
+                drawText('Time Survived ' + temp11 + ':' + temp12 + ' | New Personal Best!', displayw / 2, 340, 32,
+                         black,
+                         'center')
+            else:
+                temp11 = str(t // 3600)  # mins
+                temp12 = (t // 60) % 60  # secs
+                temp12 = '0' + str(temp12) if 0 <= temp12 <= 9 else str(temp12)
+                temp13 = str(pb // 3600)  # mins
+                temp14 = (pb // 60) % 60  # secs
+                temp14 = '0' + str(temp14) if 0 <= temp14 <= 9 else str(temp14)
+                drawText('Time Survived ' + temp11 + ':' + temp12 + ' | Personal Best ' + temp13 + ':' + temp14,
+                         displayw / 2, 340, 32, black, 'center')
+
+            for i in lostButtons:
+                if i[6] != '' and i[5] == 'center':
+                    temp7 = pygame.font.SysFont('Comic Sans MS', i[3]).render(i[0], True, i[4]).get_rect(
+                        center=(i[1], i[2]))
+                    i[7] = temp7.collidepoint(mouseX, mouseY)
+                    if i[7]:
+                        mouseCursor = 'hand'
+
+                drawText(i[0], i[1], i[2] - (3 * i[7]), i[3], i[4], i[5])
+
+                if i[7] and mouseDown:
+                    i[7] = False
+                    if i[6] == 'restart':
+                        resetGame()
                     elif i[6] == 'leave':
                         screen = 'mainMenu'
                         mouseCursor = 'arrow'
