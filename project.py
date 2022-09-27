@@ -36,7 +36,7 @@ class player:
 
     class jump:
         h = 300
-        time = 42
+        time = 36
         cooldown = 30
         cooldownTimer = 0
 
@@ -50,7 +50,8 @@ class images:
     player_translucent = pygame.image.load('assets/player_translucent.png')
     platform = pygame.image.load('assets/platform.png')
     # ground = pygame.image.load('assets/ground.png')
-    # favicon = pygame.image.load('icon.png')
+    # favicon = pygame.transform.scale(pygame.image.load('assets/icon.png'), (48, 48))
+    favicon = pygame.image.load('assets/icon.png')
 
 
 class powerup:
@@ -78,6 +79,7 @@ pb = 0  # best time
 
 keyA = False
 keyD = False
+keyS = False
 keySpace = False
 
 screen = 'mainMenu'  # mainMenu, game, credits
@@ -180,6 +182,8 @@ def resetGame():
 
     player.x = displayw / 2 - player.w / 2
     player.y = ground_level - player.h
+    player.w = 150
+    player.h = 120
     player.dx = 0
     player.dy = 0
     player.d2x = 0
@@ -206,15 +210,15 @@ def resetGame():
 
 def spawnPowerup(chance):
     temp15 = ''
-    temp16 = random.randint(1, 3)
+    temp16 = random.randint(1, 5)
     if random.randint(1, 100) <= chance:
-        if temp16 == 1: temp15 = 'regen'
+        if temp16 == 1: temp15 = 'slowEnemies'
         elif temp16 == 2: temp15 = 'doubleJump'
-        elif temp16 == 3: temp15 = 'slowEnemies'
+        else: temp15 = 'regen'
     else:
         if temp16 == 1: temp15 = 'slowness'
-        elif temp16 == 2: temp15 = 'blindness'
-        elif temp16 == 3: temp15 = 'bulletRedirect'
+        elif temp16 == 2 or temp16 == 3: temp15 = 'blindness'
+        else: temp15 = 'bulletRedirect'
 
     powerups.append([random.randint(10, displayw - 19 - 10),
                      random.randint(ground_level - 300, ground_level - 80), 50, 50, temp15])
@@ -231,9 +235,7 @@ def spawnBullet():
 
 
 # setup
-player.x = displayw / 2 - player.w / 2
-player.y = ground_level - player.h
-# pygame.display.set_icon()
+pygame.display.set_icon(images.favicon)
 
 while not crashed:
     if mouseCursor == 'none':
@@ -317,6 +319,12 @@ while not crashed:
                         keyA = True
                     elif event.key == pygame.K_d:
                         keyD = True
+                    elif (event.key == pygame.K_s or event.key == pygame.K_LSHIFT or event.key == pygame.K_q or event.key == pygame.K_c) and not keyS:
+                        keyS = True
+                        player.x -= player.w / 2
+                        player.y += player.h / 2
+                        player.w *= 2
+                        player.h /= 2
                     elif event.key == pygame.K_SPACE:
                         keySpace = True
                     elif event.key == pygame.K_ESCAPE:
@@ -327,6 +335,12 @@ while not crashed:
                         keyA = False
                     elif event.key == pygame.K_d:
                         keyD = False
+                    elif (event.key == pygame.K_s or event.key == pygame.K_LSHIFT or event.key == pygame.K_q or event.key == pygame.K_c) and keyS:
+                        keyS = False
+                        player.w /= 2
+                        player.h *= 2
+                        player.x += player.w / 2
+                        player.y -= player.h / 2
                     elif event.key == pygame.K_SPACE:
                         keySpace = False
 
@@ -463,10 +477,19 @@ while not crashed:
             if not player.isJumping and player.jump.cooldownTimer > player.jump.cooldown:
                 player.jump.cooldownTimer = 0
 
+            # temp18 = True
+            # for i in platforms:
+            #     temp18 = temp18 and ((player.x < i[0] - player.w or player.x > i[0] + i[2]) and player.y < i[1] - player.h and not player.isJumping)
+
+            # if for all platforms, the player is not directly standing on it, then fall
+            # if there doesnt exist a platform that a player is directly standing on, then make player fall
+            temp18 = False
             for i in platforms:
-                if (player.x < i[0] - player.w or player.x > i[0] + i[2]) and player.y == i[1] - player.h and not player.isJumping:
-                    player.isJumping = True
-                    player.d2y = 8 * player.jump.h / player.jump.time ** 2
+                temp18 = temp18 or (player.x > i[0] - player.w and player.x < i[0] + i[2] and player.y == i[1] - player.h and not player.isJumping)
+
+            if not temp18:
+                player.isJumping = True
+                player.d2y = 8 * player.jump.h / player.jump.time ** 2
 
             player.dx += player.d2x
             player.x += player.dx
@@ -550,9 +573,7 @@ while not crashed:
                 elif not -90 < i[4] < 90 and (
                         i[1] - i[3] * sin(90 - i[4]) < 0 or i[1] - i[3] * sin(90 - i[4]) - i[2] * sin(i[4]) < 0):
                     bullets.remove(i)
-                elif ((side_collide(i, 0) and player.dy < 0) or side_collide(i, 1) or side_collide(i,
-                                                                                                   2) or side_collide(i,
-                                                                                                                      3)) and player.immunityTimer == 0:
+                elif ((side_collide(i, 0) and player.dy < 0) or side_collide(i, 1) or side_collide(i,2) or side_collide(i,3)) and player.immunityTimer == 0:
                     bullets.remove(i)
                     player.hearts -= 1
                     player.immunityTimer = 1
@@ -596,9 +617,9 @@ while not crashed:
             gameDisplay.blit(images.powerup, (i[0], i[1]))
 
         if player.immunityTimer > 0 and 0 <= player.immunityTimer % player.immunityFlashPeriod <= player.immunityFlashPeriod / 2:
-            gameDisplay.blit(images.player_translucent, (player.x, player.y))
+            gameDisplay.blit(pygame.transform.scale(images.player_translucent, (player.w, player.h)), (player.x, player.y))
         else:
-            gameDisplay.blit(images.player, (player.x, player.y))
+            gameDisplay.blit(pygame.transform.scale(images.player, (player.w, player.h)), (player.x, player.y))
 
         # gameDisplay.blit(pygame.transform.scale(images.ground, (displayw, 120)), (0, ground_level))
         pygame.draw.rect(gameDisplay, (77, 58, 45), pygame.Rect(0, ground_level, displayw, displayh - ground_level))
