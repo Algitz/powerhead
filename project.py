@@ -2,7 +2,7 @@ import pygame, random
 
 pygame.init()
 
-displayw = 1440
+displayw = 1600
 displayh = 900
 
 gameDisplay = pygame.display.set_mode((displayw, displayh))
@@ -10,6 +10,8 @@ pygame.display.set_caption('Power Head')
 
 black = (0, 0, 0)
 white = (255, 255, 255)
+green = (104, 212, 61)
+red = (184, 45, 35)
 
 clock = pygame.time.Clock()
 crashed = False
@@ -60,16 +62,18 @@ class powerup:
     type = ''
     spawnTime = 0
 
-    slownessDuration = 300
+    slownessDuration = 360
     slownessMultiplier = 0.5
-    slowEnemiesDuration = 300
+    slowEnemiesDuration = 240
     slowEnemiesMultiplier = 0.3
-    doubleJumpDuration = 600
-    blindnessDuration = 600
+    doubleJumpDuration = 780
+    blindnessDuration = 420
     blindnessRadius = 220
     blindnessColor = (10, 10, 10)
     bulletRedirectDuration = 140
     bulletRedirectSpeed = 1.25
+
+    textDuration = 120
 
 
 ground_level = 780  # the top of the ground
@@ -182,8 +186,8 @@ def resetGame():
 
     player.x = displayw / 2 - player.w / 2
     player.y = ground_level - player.h
-    player.w = 150
-    player.h = 120
+    player.w = 150 * (keyS + 1)
+    player.h = 120 / (keyS + 1)
     player.dx = 0
     player.dy = 0
     player.d2x = 0
@@ -585,6 +589,8 @@ while not crashed:
                 if side_collide(i, 0) or side_collide(i, 1) or side_collide(i, 2) or side_collide(i, 3):
                     if i[4] == 'regen':
                         player.hearts += 1
+                        powerup.duration = powerup.textDuration
+                        powerup.type = 'regen'
                     elif i[4] == 'doubleJump':
                         powerup.duration = powerup.doubleJumpDuration
                         powerup.type = 'doubleJump'
@@ -640,11 +646,30 @@ while not crashed:
         # ui
         for i in range(player.hearts):
             gameDisplay.blit(images.heart, (50 * i, 0))
+
+        if powerup.durationTimer > 0 and powerup.type != 'regen' and powerup.type != 'bulletRedirect':
+            pygame.draw.rect(gameDisplay, red, pygame.Rect(0, 80, 150 * (1 - powerup.durationTimer / powerup.duration), 20))
+        
         temp9 = str(t // 3600)  # mins
         temp10 = (t // 60) % 60  # secs
         temp10 = '0' + str(temp10) if 0 <= temp10 <= 9 else str(temp10)
 
         drawText(temp9 + ':' + temp10, displayw - 10, 5, 24, white if powerup.durationTimer > 0 and powerup.type == 'blindness' else black, 'right')
+
+        if 0 < powerup.durationTimer < powerup.textDuration:
+            if powerup.type == 'regen':
+                drawText('+1 Heart', displayw / 2, 100, 40, green, 'center')
+            elif powerup.type == 'doubleJump':
+                drawText('Double Jump', displayw / 2, 100, 40, green, 'center')
+            elif powerup.type == 'slowEnemies':
+                drawText('Slowed Bullets', displayw / 2, 100, 40, green, 'center')
+            elif powerup.type == 'slowness':
+                drawText('Slowness', displayw / 2, 100, 40, red, 'center')
+            elif powerup.type == 'blindness':
+                drawText('Blindness', displayw / 2, 100, 40, red, 'center')
+            elif powerup.type == 'bulletRedirect':
+                drawText('Enemies Are Angry', displayw / 2, 100, 40, red, 'center')
+        
 
         if screen == 'pause':
             for event in pygame.event.get():
