@@ -1,6 +1,7 @@
 import pygame, random
 
 pygame.init()
+pygame.mixer.init()
 
 displayw = 1600
 displayh = 900
@@ -107,10 +108,14 @@ lostButtons = [['You Lost', displayw / 2, 200, 60, black, 'center', '', False],
                ['Restart', displayw / 2, 440, 32, black, 'center', 'restart', False],
                ['Leave', displayw / 2, 515, 32, black, 'center', 'leave',
                 False]]  # text, x, y, size, color, align, function (resume, leave), hover
-creditsButtons = [['Credits', displayw / 2, 200, 60, black, 'center'],
-                  ['Navanatee Yampunranai', displayw / 2, 340, 24, black, 'center'],
-                  ['Pannawich Siripakornchai', displayw / 2, 405, 24, black, 'center'],
-                  ['Supacheep Sahakitrungruang', displayw / 2, 470, 24, black, 'center'],
+creditsButtons = [['Credits', displayw / 2, 100, 60, black, 'center'],
+                  ['Navanatee Yampunranai', displayw / 2, 240, 24, black, 'center'],
+                  ['Pannawich Siripakornchai', displayw / 2, 305, 24, black, 'center'],
+                  ['Supacheep Sahakitrungruang', displayw / 2, 370, 24, black, 'center'],
+                  ['Sounds', displayw / 2, 470, 24, black, 'center'],
+                  ['youtu.be/561qHylVC_o', displayw / 2, 535, 20, black, 'center'],
+                  ['youtu.be/ZXK427oXjn8', displayw / 2, 600, 20, black, 'center'],
+                  ['youtu.be/d0LohokOYxY', displayw / 2, 665, 20, black, 'center'],
                   ['© 2022 All Rights Reserved', displayw / 2, ground_level - 30, 18, black,
                    'center']]  # text, x, y, size, color, align
 
@@ -424,7 +429,7 @@ while not crashed:
                     platforms = [[random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40]]
                     platforms.append([random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40])
                     platforms.append([random.randint(10, displayw - 200 - 10), random.randint(400, ground_level - 200), 200, 40])
-            else: # stage 7
+            else: # stage 8
                 if len(bullets) < 24:
                     spawnBullet()
                 if t == powerup.spawnTime:
@@ -471,22 +476,19 @@ while not crashed:
                 player.jump.cooldownTimer = 1
                 player.d2y = 8 * player.jump.h / player.jump.time ** 2
                 player.dy = - 4 * player.jump.h / player.jump.time
+                pygame.mixer.Sound.play(pygame.mixer.Sound('assets/jump.mp3'))
+                
             elif keySpace and player.isJumping and player.dy > 0 and not player.isDoubleJumping and powerup.durationTimer > 0 and powerup.type == 'doubleJump':
                 player.isDoubleJumping = True
                 player.d2y = 8 * player.jump.h / player.jump.time ** 2
                 player.dy = - 4 * player.jump.h / player.jump.time
+                pygame.mixer.Sound.play(pygame.mixer.Sound('assets/jump.mp3'))
 
             if player.jump.cooldownTimer > 0:
                 player.jump.cooldownTimer += 1
             if not player.isJumping and player.jump.cooldownTimer > player.jump.cooldown:
                 player.jump.cooldownTimer = 0
 
-            # temp18 = True
-            # for i in platforms:
-            #     temp18 = temp18 and ((player.x < i[0] - player.w or player.x > i[0] + i[2]) and player.y < i[1] - player.h and not player.isJumping)
-
-            # if for all platforms, the player is not directly standing on it, then fall
-            # if there doesnt exist a platform that a player is directly standing on, then make player fall
             temp18 = False
             for i in platforms:
                 temp18 = temp18 or (player.x > i[0] - player.w and player.x < i[0] + i[2] and player.y == i[1] - player.h and not player.isJumping)
@@ -762,4 +764,5 @@ while not crashed:
     clock.tick(60)
 
 pygame.quit()
+pygame.mixer.quit()
 quit()
